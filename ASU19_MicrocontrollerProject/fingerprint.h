@@ -1,5 +1,3 @@
-
-#define FINGERPRINT_GENIMG 0x1
 #include <stdint.h>
 
 void initUart();

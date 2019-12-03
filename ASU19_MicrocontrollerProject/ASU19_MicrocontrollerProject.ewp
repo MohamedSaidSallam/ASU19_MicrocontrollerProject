@@ -768,7 +768,7 @@
                 </option>
                 <option>
                     <name>IlinkIcfFile</name>
-                    <state></state>
+                    <state>$TOOLKIT_DIR$\CONFIG\generic_cortex.icf</state>
                 </option>
                 <option>
                     <name>IlinkIcfFileSlave</name>
@@ -828,7 +828,7 @@
                 </option>
                 <option>
                     <name>IlinkProgramEntryLabel</name>
-                    <state></state>
+                    <state>__iar_program_start</state>
                 </option>
                 <option>
                     <name>DoFill</name>
@@ -1001,7 +1001,7 @@
                 </option>
                 <option>
                     <name>IlinkTrustzoneImportLibraryOut</name>
-                    <state>###Unitialized###</state>
+                    <state>ASU19_MicrocontrollerProject_import_lib.o</state>
                 </option>
                 <option>
                     <name>OILinkExtraOption</name>
@@ -2103,6 +2103,12 @@
             <data />
         </settings>
     </configuration>
+    <file>
+        <name>$PROJ_DIR$\fingerprint.c</name>
+    </file>
+    <file>
+        <name>$PROJ_DIR$\fingerprint.h</name>
+    </file>
     <file>
         <name>$PROJ_DIR$\main.c</name>
     </file>
