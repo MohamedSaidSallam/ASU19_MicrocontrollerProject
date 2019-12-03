@@ -48,7 +48,7 @@ void initUart()
   };
   SYSCTL_RCGCGPIO_R |= PORT_ENABLE;  //Enable port clock
   //todo check afsel for pd6 pd7
-  GPIO_PORT_AFSEL |= 0X03; //alternate function for pA0 pA1 //todo check
+  GPIO_PORT_AFSEL |= 0XC0; //alternate function for pD6 pD7 //todo check //done
   GPIO_PORT_PCTL = (GPIO_PORT_PCTL & GPIO_PCTL_IGNORED_PINS) | GPIO_PCTL_PINS; //todo define
   UART_CTL &= ~UART_CTL_UARTEN; //clear UART enable bit during config
   UART_FBRD = ((64 * ((16000000 / 16) % BAUD)) + BAUD / 2) / BAUD;
@@ -63,9 +63,9 @@ void initUart()
 //todo match not implemented
 //todo implement replies
 
-uint8_t generateImage(void) {
+uint8_t generateImage(void) { 
   uint8_t packet[] = {FINGERPRINT_GENIMG};
-  r307sendcommand(3, packet);
+  r307sendcommand(sizeof(packet)+2, packet);
   
   // uint8_t len = getReply(packet);
   // if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
