@@ -1,14 +1,19 @@
 #include <stdint.h>
 
 void initUart();
-uint8_t generateImage(void); 
-uint8_t image2Tz(uint8_t slot);
-uint8_t storeModel(uint16_t id);
-uint8_t loadChar(uint16_t id);
-uint8_t createModel(void);
-uint8_t deleteModel(uint16_t id);
-uint8_t emptyDatabase(void);
-uint8_t fingerFastSearch(void);
+uint32_t generateImage(void);
+uint32_t image2Tz(uint8_t slot);
+uint32_t storeModel(uint16_t id);
+uint32_t loadChar(uint16_t id);
+uint32_t createModel(void);
+uint32_t deleteModel(uint16_t id);
+uint32_t emptyDatabase(void);
+uint32_t fingerFastSearch(void);
+
+uint32_t match(uint16_t id);
+uint32_t enroll(uint16_t id);
+uint32_t search(uint16_t id, uint16_t pagenum, uint8_t slot);
+
 
 #define HEADER 0xEF01
 #define ADDRESS 0xFFFFFFFF
