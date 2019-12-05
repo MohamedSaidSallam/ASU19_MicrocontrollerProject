@@ -1,7 +1,7 @@
 #include <stdint.h>
 
 void initUart();
-uint8_t generateImage(void);
+uint8_t generateImage(void); 
 uint8_t image2Tz(uint8_t slot);
 uint8_t storeModel(uint16_t id);
 uint8_t loadChar(uint16_t id);
@@ -47,3 +47,13 @@ uint8_t fingerFastSearch(void);
 #define FINGERPRINT_HISPEEDSEARCH 0x1B
 
 #define FINGERPRINT_ACKPACKET 0x07
+#define FINGERPRINT_STARTCODE 0xEF01
+
+#define FINGERPRINT_COMMANDPACKET 0x1
+#define FINGERPRINT_DATAPACKET 0x2
+#define FINGERPRINT_ACKPACKET 0x7
+#define FINGERPRINT_ENDDATAPACKET 0x8
+
+#define FINGERPRINT_TIMEOUT 0xFF
+#define FINGERPRINT_BADPACKET 0xFE
+

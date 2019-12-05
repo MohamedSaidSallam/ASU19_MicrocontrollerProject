@@ -4,7 +4,6 @@
 #define ADDRESS 0xFFFFFFFF
 #define COMMAND_PACKET_ID 0x01
 #define BAUD 57600
-
 #include <stdint.h>
 
 void r307sendcommand(uint16_t len_bytes, uint8_t *packet_data);
@@ -32,15 +31,73 @@ void initUart()
 
 //todo match not implemented
 //todo implement replies
+uint32_t Match(uint16_t id,uint8_t slot)
+{
+   
+   if(loadChar(id)==-1)
+    return -1;
+   if(generateImage()==-1)
+    return -1;
+   if(image2Tz( slot)==-1)
+    return -1;
+   return matching();
+}
+uint32_t Search(uint16_t id,uint16_t pagenum,uint8_t slot)
+{
+  
+    if(generateImage()==-1)
+       return -1;
+     if(image2Tz( slot)==-1)
+       return -1;
+     return searching(id,pagenum);
+}
+ int Enroll(uint8_t slot1,uint8_t slot2,uint16_t id)
+ {
+   
+    if(generateImage()==-1)
+       return -1;
+     if(image2Tz(slot1)==-1)
+       return -1;
+     if(generateImage()==-1)
+       return -1;
+     if(image2Tz(slot2)==-1)
+       return -1;
+     if(createModel()==-1)
+       return -1;
+     if(storeModel(id)==-1)
+       return -1;
+     return 0;
+     
+ }
+     
+uint32_t searching(uint16_t id,uint16_t pagenum)
+{
+    uint8_t packet[] = {FINGERPRINT_SEARCH};
+  r307sendcommand(sizeof(packet)+2, packet);
+  
+  uint8_t len = getReply(packet);
+  if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
+   return -1;
+  return packet[1]<<16+packet[2]<<8+packet[3];
+}
 
 uint8_t generateImage(void) { 
   uint8_t packet[] = {FINGERPRINT_GENIMG};
   r307sendcommand(sizeof(packet)+2, packet);
   
-  // uint8_t len = getReply(packet);
-  // if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
+  uint8_t len = getReply(packet);
+  if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
    return -1;
-  // return packet[1];
+  return packet[1];
+}
+uint32_t matching(void) { 
+  uint8_t packet[] = {FINGERPRINT_MATCH};
+  r307sendcommand(sizeof(packet)+2, packet);
+  
+  uint8_t len = getReply(packet);
+  if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
+   return -1;
+  return packet[1]<<16+packet[2]<<8+packet[3];
 }
 
 // generate charactar file from image buffer
@@ -49,10 +106,10 @@ uint8_t image2Tz(uint8_t slot) {
   uint8_t packet[] = {FINGERPRINT_IMAGE2TZ, slot};
   r307sendcommand(sizeof(packet)+2, packet);
 
-  // uint8_t len = getReply(packet);  
-  // if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
-   return -1;
-  // return packet[1];
+   uint8_t len = getReply(packet);  
+   if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
+    return -1;
+   return packet[1];
 }
 
 // store char buffer 1 in library at #id
@@ -60,10 +117,11 @@ uint8_t storeModel(uint16_t id) {
   uint8_t packet[] = {FINGERPRINT_STORE, 0x01, id >> 8, id & 0xFF};
   r307sendcommand(sizeof(packet)+2, packet);
   
-  // uint8_t len = getReply(packet);
-  // if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
-   return -1;
-  // return packet[1];
+   uint8_t len = getReply(packet);
+   if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
+    return -1;
+   return packet[1];
+ 
 }
 
 // load char at library # id to char buffer #1
@@ -71,10 +129,10 @@ uint8_t loadChar(uint16_t id) {
     uint8_t packet[] = {FINGERPRINT_LOADCHAR, 0x01, id >> 8, id & 0xFF};
     r307sendcommand(sizeof(packet)+2, packet);
     
-    // uint8_t len = getReply(packet);
-    // if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
+     uint8_t len = getReply(packet);
+     if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
         return -1;
-    // return packet[1];
+     return packet[1];
 }
 
 // combine char 1, 2 and put result in them both
@@ -82,30 +140,30 @@ uint8_t createModel(void) {
   uint8_t packet[] = {FINGERPRINT_REGMODEL};
   r307sendcommand(sizeof(packet)+2, packet);
   
-  // uint8_t len = getReply(packet);
-  // if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
-   return -1;
-  // return packet[1];
+   uint8_t len = getReply(packet);
+   if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
+    return -1;
+   return packet[1];
 }
 
 uint8_t deleteModel(uint16_t id) {
     uint8_t packet[] = {FINGERPRINT_DELETECHAR, id >> 8, id & 0xFF, 0x00, 0x01};
     r307sendcommand(sizeof(packet)+2, packet);
 
-    // uint8_t len = getReply(packet);
-    // if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
-        return -1;
-    // return packet[1];
+     uint8_t len = getReply(packet);
+     if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
+       return -1;
+     return packet[1];
 }
 
 uint8_t emptyDatabase(void) {
   uint8_t packet[] = {FINGERPRINT_EMPTYLIBRARY};
   r307sendcommand(sizeof(packet)+2, packet);
-  // uint8_t len = getReply(packet);
+   uint8_t len = getReply(packet);
   
-  // if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
-   return -1;
-  // return packet[1];
+   if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
+     return -1;
+   return packet[1];
 }
 
 uint8_t fingerFastSearch(void) {
@@ -114,21 +172,22 @@ uint8_t fingerFastSearch(void) {
   // high speed search of slot #1 starting at page 0x0000 and ending at page #0x00A3 
   uint8_t packet[] = {FINGERPRINT_HISPEEDSEARCH, 0x01, 0x00, 0x00, 0x00, 0xA3};
   r307sendcommand(sizeof(packet)+2, packet);
-  // uint8_t len = getReply(packet);
+   uint8_t len = getReply(packet);
   
-  // if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
+   if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
    return -1;
 
-  // fingerID = packet[2];
-  // fingerID <<= 8;
-  // fingerID |= packet[3];
+  fingerID = packet[2];
+  fingerID <<= 8;
+  fingerID |= packet[3];
   
-  // confidence = packet[4];
-  // confidence <<= 8;
-  // confidence |= packet[5];
+  confidence = packet[4];
+  confidence <<= 8;
+  confidence |= packet[5];
   
-  // return packet[1];
+  return packet[1];
 }
+
 
 void r307sendcommand(uint16_t len_bytes, uint8_t *packet_data)
 {
@@ -164,3 +223,36 @@ void r307_printHex(uint8_t input)
   UART_DATA = input;
   //  UART_OutChar(input); // echo debugging
 }
+uint8_t getReply(uint8_t packet[]) {
+  uint8_t reply[20], idx;
+  idx=0;
+  uint16_t len;
+  while((UART2_FR_R & UART_FR_RXFE) == 0){
+      reply[idx] = UART2_DR_R;        // retrieve char from FIFO
+      idx++;
+      if ((idx == 0) && (reply[0] != (FINGERPRINT_STARTCODE >> 8)))
+      continue;
+    idx++;
+    
+    // check packet!
+    if (idx >= 9) {
+      if ((reply[0] != (FINGERPRINT_STARTCODE >> 8)) ||
+          (reply[1] != (FINGERPRINT_STARTCODE & 0xFF)))
+          return FINGERPRINT_BADPACKET;
+      uint8_t packettype = reply[6];
+      uint16_t len = reply[7];
+      len <<= 8;
+      len |= reply[8];
+      len -= 2;
+      if (idx <= (len+10)) continue;
+      packet[0] = packettype;      
+      for (uint8_t i=0; i<len; i++) {
+        packet[1+i] = reply[9+i];
+      }
+    }
+  }
+  
+   return len;
+   
+    }
+  
