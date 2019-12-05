@@ -8,6 +8,9 @@
 
 void r307sendcommand(uint16_t len_bytes, uint8_t *packet_data);
 void r307_printHex(uint8_t input);
+uint8_t getReply(uint8_t packet[]);
+uint32_t searching(uint16_t id,uint16_t pagenum);
+uint32_t matching(void);
 
 void initUart()
 {
