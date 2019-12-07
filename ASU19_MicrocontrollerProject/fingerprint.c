@@ -8,29 +8,26 @@
 #include <stdio.h>
 
 void r307sendcommand(uint16_t len_bytes, uint8_t *packet_data);
-void r307_printHex(uint8_t input);
+void r307_printHex(char input);
 uint32_t searching(uint16_t id, uint16_t pagenum);
 uint32_t matching(void);
 uint8_t getReply(uint8_t packet[]);
 
 void initUart()
 {
-  SYSCTL_RCGCUART_R |= UART_ENABLE; //Enable Uart2
-  while ((SYSCTL_PRUART_R & UART_ENABLE) == 0)
-  {
-  };
-  SYSCTL_RCGCGPIO_R |= PORT_ENABLE; //Enable port clock
-  //todo check afsel for pd6 pd7
-  GPIO_PORT_AFSEL |= 0xC0;                                                     //alternate function for pD6 pD7 //todo check //done
-  GPIO_PORT_PCTL = (GPIO_PORT_PCTL & GPIO_PCTL_IGNORED_PINS) | GPIO_PCTL_PINS; //todo define
-  UART_CTL &= ~UART_CTL_UARTEN;                                                //clear UART enable bit during config
-  UART_FBRD = ((64 * ((16000000 / 16) % BAUD)) + BAUD / 2) / BAUD;
-  UART_IBRD = 16000000 / 16 / BAUD;
-  UART_LCRH = (UART_LCRH_WLEN_8 | UART_LCRH_FEN); //8 bit word length , 1 stop , no parity
-  UART_IFLS &= ~0x3F;                             //todo check                           // msh fahma //leh 3amlin clear ly bit 5 w hya reserved
-  UART_IFLS += UART_IFLS_RX1_8;                   // 1/8 //todo typo
-  UART_IM |= UART_IM_RXIM | UART_IM_RTIM;         //should we enable interrupt ?
-  UART_CTL |= UART_CTL_UARTEN;                    //enable bit
+    SYSCTL_RCGC1_R |= SYSCTL_RCGC1_UART0; // activate UART0
+  SYSCTL_RCGC2_R |= SYSCTL_RCGC2_GPIOA; // activate port A
+  UART0_CTL_R &= ~UART_CTL_UARTEN;      // disable UART
+    UART_IBRD = 260;
+    UART_FBRD = 27;
+
+    //GPIO_PORTA_PCTL_R = 
+      //      (GPIO_PORTA_PCTL_R&0xFFFFFF00)+0x00000011;
+                                      // 8 bit word length (no parity bits, one stop bit, FIFOs)
+  UART0_LCRH_R = (UART_LCRH_WLEN_8|UART_LCRH_FEN);
+  UART0_CTL_R |= UART_CTL_UARTEN;       // enable UART
+  GPIO_PORTA_AFSEL_R |= 0x03;           // enable alt funct on PA1-0
+  GPIO_PORTA_DEN_R |= 0x03;             // enable digital I/O on PA1-0
 }
 
 uint32_t match(uint16_t id)
@@ -227,13 +224,13 @@ void r307sendcommand(uint16_t len_bytes, uint8_t *packet_data)
 }
 
 //todo ana bab3at hex msh char ?? :( i am not sad i am drawn this way
-void r307_printHex(uint8_t input)
+void r307_printHex(char input)
 {
   printf("%X ", input);
-  while ((UART_FR & UART_FR_TXFF) != 0)
+  while ((UART0_FR_R & UART_FR_TXFF) != 0)
   {
   };
-  UART_DATA = input;
+  UART0_DR_R = input;
 //   UART_OutChar(input); // echo debugging
 }
 
