@@ -5,6 +5,7 @@
 #define COMMAND_PACKET_ID 0x01
 #define BAUD 57600
 #include <stdint.h>
+#include <stdio.h>
 
 void r307sendcommand(uint16_t len_bytes, uint8_t *packet_data);
 void r307_printHex(uint8_t input);
@@ -20,7 +21,7 @@ void initUart()
   };
   SYSCTL_RCGCGPIO_R |= PORT_ENABLE; //Enable port clock
   //todo check afsel for pd6 pd7
-  GPIO_PORT_AFSEL |= 0XC0;                                                     //alternate function for pD6 pD7 //todo check //done
+  GPIO_PORT_AFSEL |= 0xC0;                                                     //alternate function for pD6 pD7 //todo check //done
   GPIO_PORT_PCTL = (GPIO_PORT_PCTL & GPIO_PCTL_IGNORED_PINS) | GPIO_PCTL_PINS; //todo define
   UART_CTL &= ~UART_CTL_UARTEN;                                                //clear UART enable bit during config
   UART_FBRD = ((64 * ((16000000 / 16) % BAUD)) + BAUD / 2) / BAUD;
@@ -198,38 +199,42 @@ uint32_t fingerFastSearch(void)
 
 void r307sendcommand(uint16_t len_bytes, uint8_t *packet_data)
 {
-  r307_printHex((uint8_t)HEADER >> 8);
-  r307_printHex((uint8_t)HEADER);
-  r307_printHex((uint8_t)ADDRESS >> 24);
-  r307_printHex((uint8_t)ADDRESS >> 16);
-  r307_printHex((uint8_t)ADDRESS >> 8);
-  r307_printHex((uint8_t)ADDRESS);
-  r307_printHex((uint8_t)COMMAND_PACKET_ID);
+  r307_printHex((uint8_t)(HEADER >> 8));
+  r307_printHex((uint8_t)(HEADER));
+  r307_printHex((uint8_t)(ADDRESS >> 24));
+  r307_printHex((uint8_t)(ADDRESS >> 16));
+  r307_printHex((uint8_t)(ADDRESS >> 8));
+  r307_printHex((uint8_t)(ADDRESS));
+  r307_printHex((uint8_t)(COMMAND_PACKET_ID));
 
   //todo send len
-  r307_printHex((uint8_t)len_bytes >> 8);
-  r307_printHex((uint8_t)len_bytes);
+  r307_printHex((uint8_t)(len_bytes >> 8));
+  r307_printHex((uint8_t)(len_bytes));
 
   //todo send data
   for (uint8_t i = 0; i < len_bytes - 2; i++)
   {
     r307_printHex(packet_data[i]);
   }
-  //todo send checksum
-  //todo check sum calculation
+
   uint16_t sum = (len_bytes >> 8) + (len_bytes & 0xFF) + COMMAND_PACKET_ID;
-  r307_printHex((uint8_t)sum >> 8);
-  r307_printHex((uint8_t)sum);
+  for (uint8_t i = 0; i < len_bytes - 2; i++)
+  {
+    sum += packet_data[i];
+  }
+  r307_printHex((uint8_t)(sum >> 8));
+  r307_printHex((uint8_t)(sum));
 }
 
 //todo ana bab3at hex msh char ?? :( i am not sad i am drawn this way
 void r307_printHex(uint8_t input)
 {
+  printf("%X ", input);
   while ((UART_FR & UART_FR_TXFF) != 0)
   {
   };
   UART_DATA = input;
-  //  UART_OutChar(input); // echo debugging
+//   UART_OutChar(input); // echo debugging
 }
 
 //returns packet type then the packet
@@ -238,9 +243,9 @@ uint8_t getReply(uint8_t packet[])
   uint8_t reply[20], idx;
   idx = 0;
   uint16_t len = 0;
-  while ((UART2_FR_R & UART_FR_RXFE) == 0)
+  while ((UART_FR & UART_FR_RXFE) == 0)
   {
-    reply[idx] = UART2_DR_R; // retrieve char from FIFO
+    reply[idx] = UART_DATA; // retrieve char from FIFO
     //if not a valid packet start
     if ((idx == 0) && (reply[0] != (FINGERPRINT_STARTCODE >> 8)))
       continue;

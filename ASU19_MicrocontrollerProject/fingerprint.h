@@ -11,6 +11,7 @@ uint32_t emptyDatabase(void);
 uint32_t fingerFastSearch(void);
 
 uint32_t match(uint16_t id);
+uint32_t matching(void);
 uint32_t enroll(uint16_t id);
 uint32_t search(uint16_t id, uint16_t pagenum, uint8_t slot);
 
@@ -36,8 +37,8 @@ uint32_t search(uint16_t id, uint16_t pagenum, uint8_t slot);
 #define GPIO_PCTL_PINS 0x11000000
 #define GPIO_PCTL_IGNORED_PINS 0x00FFFFFF
 
-#define UART_ENABLE 0x2 //uart2
-#define PORT_ENABLE 0x4 //port D
+#define UART_ENABLE 0x4 //uart2
+#define PORT_ENABLE 0x8 //port D
 #define PORT_PINS 0XD0
 
 #define FINGERPRINT_GENIMG 0x01
