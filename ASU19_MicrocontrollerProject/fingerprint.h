@@ -21,15 +21,15 @@ uint32_t search(uint16_t id, uint16_t pagenum, uint8_t slot);
 #define COMMAND_PACKET_ID 0x01
 #define BAUD 57600
 //uart 2
-#define UART_CTL UART0_CTL_R
-#define UART_FBRD UART0_FBRD_R
-#define UART_IBRD UART0_IBRD_R
-#define UART_LCRH UART0_LCRH_R
-#define UART_IFLS UART0_IFLS_R
-#define UART_IM UART0_IM_R
-#define UART_CTL UART0_CTL_R
-#define UART_DATA UART0_DR_R
-#define UART_FR UART0_FR_R
+#define UART_CTL UART1_CTL_R
+#define UART_FBRD UART1_FBRD_R
+#define UART_IBRD UART1_IBRD_R
+#define UART_LCRH UART1_LCRH_R
+#define UART_IFLS UART1_IFLS_R
+#define UART_IM UART1_IM_R
+#define UART_CTL UART1_CTL_R
+#define UART_DATA UART1_DR_R
+#define UART_FR UART1_FR_R
 
 //pd6 7
 #define GPIO_PORT_AFSEL GPIO_PORTA_AFSEL_R
