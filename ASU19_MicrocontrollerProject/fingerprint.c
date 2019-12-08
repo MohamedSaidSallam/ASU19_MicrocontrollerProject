@@ -18,8 +18,8 @@ void initUart()
     SYSCTL_RCGC1_R |= SYSCTL_RCGC1_UART0; // activate UART0
   SYSCTL_RCGC2_R |= SYSCTL_RCGC2_GPIOA; // activate port A
   UART0_CTL_R &= ~UART_CTL_UARTEN;      // disable UART
-    UART_IBRD = 260;
-    UART_FBRD = 27;
+  UART0_IBRD_R = 16000000 / 16 / BAUD;
+  UART0_FBRD_R = ((64 * ((16000000 / 16) % BAUD)) + BAUD / 2) / BAUD;
 
     //GPIO_PORTA_PCTL_R = 
       //      (GPIO_PORTA_PCTL_R&0xFFFFFF00)+0x00000011;
