@@ -1,5 +1,6 @@
 #include "tm4c123gh6pm.h"
 #include "fingerprint.h"
+#include "systicktimerutil.h"
 #define HEADER 0xEF01
 #define ADDRESS 0xFFFFFFFF
 #define COMMAND_PACKET_ID 0x01
@@ -15,18 +16,34 @@ uint8_t getReply(uint8_t packet[]);
 
 void initUart()
 {
-    SYSCTL_RCGC1_R |= SYSCTL_RCGC1_UART1; // activate UART0
+  SYSCTL_RCGC1_R |= SYSCTL_RCGC1_UART1; // activate UART0
   SYSCTL_RCGC2_R |= SYSCTL_RCGC2_GPIOB; // activate port A
   UART1_CTL_R &= ~UART_CTL_UARTEN;      // disable UART
   UART1_IBRD_R = 16000000 / 16 / BAUD;
   UART1_FBRD_R = ((64 * ((16000000 / 16) % BAUD)) + BAUD / 2) / BAUD;
-  GPIO_PORTB_AFSEL_R |= 0x03;           // enable alt funct on PA1-0
+  GPIO_PORTB_AFSEL_R |= 0x03; // enable alt funct on PA1-0
 
-    GPIO_PORTB_PCTL_R  |= 0x00000011;
-                                      // 8 bit word length (no parity bits, one stop bit, FIFOs)
-  UART1_LCRH_R = (UART_LCRH_WLEN_8|UART_LCRH_FEN);
-  UART1_CTL_R |= UART_CTL_UARTEN;       // enable UART
-  GPIO_PORTB_DEN_R |= 0x03;             // enable digital I/O on PA1-0
+  GPIO_PORTB_PCTL_R |= 0x00000011;
+  // 8 bit word length (no parity bits, one stop bit, FIFOs)
+  UART1_LCRH_R = (UART_LCRH_WLEN_8 | UART_LCRH_FEN);
+  UART1_CTL_R |= UART_CTL_UARTEN; // enable UART
+  GPIO_PORTB_DEN_R |= 0x03;       // enable digital I/O on PA1-0
+
+  delayMs(1000);
+  delayMs(200);
+}
+
+uint8_t verifyPassword(void)
+{
+  uint8_t packet[] = {FINGERPRINT_VERIFYPASSWORD,
+                      (PASSWORD >> 24), (PASSWORD >> 16),
+                      (PASSWORD >> 8), PASSWORD};
+  r307sendcommand(7, packet);
+  uint8_t len = getReply(packet);
+
+  if ((len == 1) && (packet[0] == FINGERPRINT_ACKPACKET) && (packet[1] == FINGERPRINT_OK))
+    return 1;
+  return 0;
 }
 
 uint32_t match(uint16_t id)
@@ -56,6 +73,11 @@ uint32_t enroll(uint16_t id)
     return -1;
   if (image2Tz(1) == -1)
     return -1;
+  delayMs(1000);
+  delayMs(1000);
+  delayMs(1000);
+  delayMs(1000);
+  delayMs(1000);
   if (generateImage() == -1)
     return -1;
   if (image2Tz(2) == -1)
@@ -77,8 +99,23 @@ uint32_t searching(uint16_t id, uint16_t pagenum)
     return -1;
   return (packet[1] << 16) + (packet[2] << 8) + packet[3];
 }
-
 uint32_t generateImage(void)
+{
+  uint8_t stupid = 0; // copyright of DigitalPhoenix Ltd
+    while (1)
+  {
+    delayMs(100);
+    if (genImg() == 0)
+    {
+      stupid++;
+      if (stupid > 2)
+      {
+        break;
+      }
+    }
+  }
+}
+uint32_t genImg(void)
 {
   uint8_t packet[] = {FINGERPRINT_GENIMG};
   r307sendcommand(sizeof(packet) + 2, packet);
@@ -225,19 +262,18 @@ void r307sendcommand(uint16_t len_bytes, uint8_t *packet_data)
 //todo ana bab3at hex msh char ?? :( i am not sad i am drawn this way
 void r307_printHex(char input)
 {
-  printf("%X ", input);
+  //printf("%X ", input);
   while ((UART1_FR_R & UART_FR_TXFF) != 0)
   {
   };
   UART1_DR_R = input;
-//   UART_OutChar(input); // echo debugging
+  //   UART_OutChar(input); // echo debugging
 }
 
 //returns packet type then the packet
 uint8_t getReply(uint8_t packet[])
 {
-  uint8_t reply[20], idx;
-  idx = 0;
+  uint8_t reply[20], idx = 0;
   uint16_t len = 0;
   while ((UART_FR & UART_FR_RXFE) == 0)
   {

@@ -1,6 +1,8 @@
 #include <stdint.h>
 
 void initUart();
+uint8_t verifyPassword(void);
+
 uint32_t generateImage(void);
 uint32_t image2Tz(uint8_t slot);
 uint32_t storeModel(uint16_t id);
@@ -58,6 +60,9 @@ uint32_t search(uint16_t id, uint16_t pagenum, uint8_t slot);
 #define FINGERPRINT_DATAPACKET 0x2
 #define FINGERPRINT_ACKPACKET 0x7
 #define FINGERPRINT_ENDDATAPACKET 0x8
+#define FINGERPRINT_VERIFYPASSWORD 0x13
+#define FINGERPRINT_OK 0x0
+#define PASSWORD 0x0
 
 #define FINGERPRINT_TIMEOUT 0xFF
 #define FINGERPRINT_BADPACKET 0xFE
