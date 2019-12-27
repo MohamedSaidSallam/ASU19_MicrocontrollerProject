@@ -62,7 +62,9 @@ uint32_t match(uint16_t id)
 uint32_t search()
 {
   while(genImg() != 0)
-    ;
+  {
+    delayMs(200);
+  }
   if (image2Tz(1) == -1)
     return -1;
   return searching();
@@ -144,7 +146,7 @@ uint32_t matching(void)
 // store it in char buffer with id # slot (1->1, 2+ -> 2)
 uint32_t image2Tz(uint8_t slot)
 {
-  uint8_t packet[] = {FINGERPRINT_IMAGE2TZ, slot};
+  uint8_t packet[] = {FINGERPRINT_IMAGE2TZ, 1};
   r307sendcommand(sizeof(packet) + 2, packet);
 
   uint8_t len = getReply(packet);
