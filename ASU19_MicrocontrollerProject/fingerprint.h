@@ -11,7 +11,7 @@ uint32_t createModel(void);
 uint32_t deleteModel(uint16_t id);
 uint32_t emptyDatabase(void);
 uint32_t fingerFastSearch(void);
-uint32_t genImg();
+uint8_t genImg();
 uint32_t match(uint16_t id);
 uint32_t matching(void);
 uint32_t enroll(uint16_t id);

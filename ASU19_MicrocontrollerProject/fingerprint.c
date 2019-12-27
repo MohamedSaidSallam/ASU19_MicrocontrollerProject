@@ -13,7 +13,8 @@ void r307_printHex(char input);
 uint32_t searching();
 uint32_t matching(void);
 uint8_t getReply(uint8_t packet[]);
-uint32_t genImg(void);
+uint8_t genImg(void);
+uint8_t reply[20];
 
 void initUart()
 {
@@ -98,11 +99,17 @@ uint32_t searching()
   r307sendcommand(sizeof(packet) + 2, packet);
 
   uint8_t len = getReply(packet);
-  if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
+  uint8_t packettype = reply[6];
+  uint8_t confirmationCode = reply[9];
+  uint8_t fingerID = reply[10] << 8;
+  fingerID |= reply[11];
+  // uint8_t packettype = reply[6];
+  
+  if ((len != 1) && (packettype != FINGERPRINT_ACKPACKET))
     return -1;
-  if((packet[1])!=0)
+  if((confirmationCode)!=0)
     return -1;
-  return (packet[2] << 8) + packet[3];
+  return fingerID;
 }
 uint32_t generateImage(void)
 {
@@ -121,15 +128,25 @@ uint32_t generateImage(void)
   }
   return 0;
 }
-uint32_t genImg(void)
+uint8_t genImg(void)
 {
   uint8_t packet[] = {FINGERPRINT_GENIMG};
   r307sendcommand(sizeof(packet) + 2, packet);
 
   uint8_t len = getReply(packet);
-  if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
+  
+  uint8_t packettype = reply[6];
+  uint8_t confirmationCode = reply[9];
+  // uint8_t packettype = reply[6];
+  
+  if ((len != 1) && (packettype != FINGERPRINT_ACKPACKET))
     return -1;
-  return packet[1];
+  if(confirmationCode == 0){
+    return 0;
+  } else if(confirmationCode == 2){
+    return 2;
+  }
+  return confirmationCode;
 }
 uint32_t matching(void)
 {
@@ -150,9 +167,11 @@ uint32_t image2Tz(uint8_t slot)
   r307sendcommand(sizeof(packet) + 2, packet);
 
   uint8_t len = getReply(packet);
-  if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
+  uint8_t packettype = reply[6];
+  uint8_t confirmationCode = reply[9];
+  if ((len != 1) && (packettype != FINGERPRINT_ACKPACKET))
     return -1;
-  return packet[1];
+  return confirmationCode;
 }
 
 // store char buffer 1 in library at #id
@@ -272,7 +291,6 @@ void r307sendcommand(uint16_t len_bytes, uint8_t *packet_data)
   r307_printHex((uint8_t)(sum));
 }
 
-//todo ana bab3at hex msh char ?? :( i am not sad i am drawn this way
 void r307_printHex(char input)
 {
   //printf("%X ", input);
@@ -286,7 +304,7 @@ void r307_printHex(char input)
 //returns packet length, modifies packet to have packet identifier(type) and the reply (skipping the length)
 uint8_t getReply(uint8_t packet[])
 {
-  uint8_t reply[20], idx = 0;
+  uint8_t idx = 0;
   uint16_t len = 0;
   while ((UART_FR & UART_FR_RXFE) == 0)
   {
@@ -311,11 +329,13 @@ uint8_t getReply(uint8_t packet[])
       if (idx <= (len + 10))
         continue;
       packet[0] = packettype;
-      for (uint8_t i = 0; i < len; i++)
+      for (uint8_t i = 0; i < 5; i++)
       {
         packet[1 + i] = reply[9 + i];
       }
+      return len;
     }
+   
   }
 
   return len;

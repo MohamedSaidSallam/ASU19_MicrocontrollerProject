@@ -8,7 +8,6 @@ void init(void)
   systickTimerInit();
   initUart();
 
-  verifyPassword();
    genImg();
 genImg();
 genImg();
