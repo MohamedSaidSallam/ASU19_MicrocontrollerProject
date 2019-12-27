@@ -10,24 +10,26 @@
 
 void r307sendcommand(uint16_t len_bytes, uint8_t *packet_data);
 void r307_printHex(char input);
-uint32_t searching(uint16_t id, uint16_t pagenum);
+uint32_t searching();
 uint32_t matching(void);
 uint8_t getReply(uint8_t packet[]);
+uint32_t genImg(void);
 
 void initUart()
 {
-  SYSCTL_RCGC1_R |= SYSCTL_RCGC1_UART1; // activate UART0
-  SYSCTL_RCGC2_R |= SYSCTL_RCGC2_GPIOB; // activate port A
-  UART1_CTL_R &= ~UART_CTL_UARTEN;      // disable UART
-  UART1_IBRD_R = 16000000 / 16 / BAUD;
-  UART1_FBRD_R = ((64 * ((16000000 / 16) % BAUD)) + BAUD / 2) / BAUD;
-  GPIO_PORTB_AFSEL_R |= 0x03; // enable alt funct on PA1-0
+  SYSCTL_RCGCUART_R |= SYSCTL_RCGCUART_R5; // activate UART5
+  SYSCTL_RCGCGPIO_R |= SYSCTL_RCGCGPIO_R4; // activate port E
+  UART5_CTL_R &= ~UART_CTL_UARTEN;      // disable UART
+  UART5_IBRD_R = 16000000 / 16 / BAUD;
+  UART5_FBRD_R = ((64 * ((16000000 / 16) % BAUD)) + BAUD / 2) / BAUD;
+  GPIO_PORTE_AFSEL_R |= 0x30; // enable alt funct on PA1-0
 
-  GPIO_PORTB_PCTL_R |= 0x00000011;
+  GPIO_PORTE_PCTL_R &= ~0x00FF0000;
+  GPIO_PORTE_PCTL_R |= 0x00110000;
   // 8 bit word length (no parity bits, one stop bit, FIFOs)
-  UART1_LCRH_R = (UART_LCRH_WLEN_8 | UART_LCRH_FEN);
-  UART1_CTL_R |= UART_CTL_UARTEN; // enable UART
-  GPIO_PORTB_DEN_R |= 0x03;       // enable digital I/O on PA1-0
+  UART5_LCRH_R = (UART_LCRH_WLEN_8 | UART_LCRH_FEN);
+  UART5_CTL_R |= UART_CTL_UARTEN; // enable UART
+  GPIO_PORTE_DEN_R |= 0x30;       // enable digital I/O on PA1-0
 
   delayMs(1000);
   delayMs(200);
@@ -57,14 +59,13 @@ uint32_t match(uint16_t id)
   return matching();
 }
 
-uint32_t search(uint16_t id, uint16_t pagenum, uint8_t slot)
+uint32_t search()
 {
-
-  if (generateImage() == -1)
+  while(genImg() != 0)
+    ;
+  if (image2Tz(1) == -1)
     return -1;
-  if (image2Tz(slot) == -1)
-    return -1;
-  return searching(id, pagenum);
+  return searching();
 }
 
 uint32_t enroll(uint16_t id)
@@ -89,15 +90,17 @@ uint32_t enroll(uint16_t id)
   return 0;
 }
 
-uint32_t searching(uint16_t id, uint16_t pagenum)
+uint32_t searching()
 {
-  uint8_t packet[] = {FINGERPRINT_SEARCH};
+  uint8_t packet[] = {FINGERPRINT_SEARCH, 1, 0, 0, 0x3, 0xE8};
   r307sendcommand(sizeof(packet) + 2, packet);
 
   uint8_t len = getReply(packet);
   if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
     return -1;
-  return (packet[1] << 16) + (packet[2] << 8) + packet[3];
+  if((packet[1])!=0)
+    return -1;
+  return (packet[2] << 8) + packet[3];
 }
 uint32_t generateImage(void)
 {
@@ -114,6 +117,7 @@ uint32_t generateImage(void)
       }
     }
   }
+  return 0;
 }
 uint32_t genImg(void)
 {
@@ -219,6 +223,13 @@ uint32_t fingerFastSearch(void)
   if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
     return -1;
 
+  uint8_t confirmationCode = packet[1];
+
+  if (confirmationCode == 9 || confirmationCode == 1)
+  {
+    //no finger found(9) or error in recieving packet(1)
+    return -1;
+  }
   fingerID = packet[2];
   fingerID <<= 8;
   fingerID |= packet[3];
@@ -227,7 +238,7 @@ uint32_t fingerFastSearch(void)
   confidence <<= 8;
   confidence |= packet[5];
 
-  return packet[1];
+  return fingerID;
 }
 
 void r307sendcommand(uint16_t len_bytes, uint8_t *packet_data)
@@ -263,14 +274,14 @@ void r307sendcommand(uint16_t len_bytes, uint8_t *packet_data)
 void r307_printHex(char input)
 {
   //printf("%X ", input);
-  while ((UART1_FR_R & UART_FR_TXFF) != 0)
+  while ((UART5_FR_R & UART_FR_TXFF) != 0)
   {
   };
-  UART1_DR_R = input;
+  UART5_DR_R = input;
   //   UART_OutChar(input); // echo debugging
 }
 
-//returns packet type then the packet
+//returns packet length, modifies packet to have packet identifier(type) and the reply (skipping the length)
 uint8_t getReply(uint8_t packet[])
 {
   uint8_t reply[20], idx = 0;

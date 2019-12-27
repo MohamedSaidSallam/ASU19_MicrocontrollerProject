@@ -11,11 +11,11 @@ uint32_t createModel(void);
 uint32_t deleteModel(uint16_t id);
 uint32_t emptyDatabase(void);
 uint32_t fingerFastSearch(void);
-
+uint32_t genImg();
 uint32_t match(uint16_t id);
 uint32_t matching(void);
 uint32_t enroll(uint16_t id);
-uint32_t search(uint16_t id, uint16_t pagenum, uint8_t slot);
+uint32_t search();
 
 
 #define HEADER 0xEF01
@@ -23,15 +23,15 @@ uint32_t search(uint16_t id, uint16_t pagenum, uint8_t slot);
 #define COMMAND_PACKET_ID 0x01
 #define BAUD 57600
 //uart 2
-#define UART_CTL UART1_CTL_R
-#define UART_FBRD UART1_FBRD_R
-#define UART_IBRD UART1_IBRD_R
-#define UART_LCRH UART1_LCRH_R
-#define UART_IFLS UART1_IFLS_R
-#define UART_IM UART1_IM_R
-#define UART_CTL UART1_CTL_R
-#define UART_DATA UART1_DR_R
-#define UART_FR UART1_FR_R
+#define UART_CTL UART5_CTL_R
+#define UART_FBRD UART5_FBRD_R
+#define UART_IBRD UART5_IBRD_R
+#define UART_LCRH UART5_LCRH_R
+#define UART_IFLS UART5_IFLS_R
+#define UART_IM UART5_IM_R
+#define UART_CTL UART5_CTL_R
+#define UART_DATA UART5_DR_R
+#define UART_FR UART5_FR_R
 
 //pd6 7
 #define GPIO_PORT_AFSEL GPIO_PORTA_AFSEL_R

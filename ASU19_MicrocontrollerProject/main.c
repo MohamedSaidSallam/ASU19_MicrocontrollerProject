@@ -9,24 +9,20 @@ void init(void)
   initUart();
 
   verifyPassword();
+   genImg();
+genImg();
+genImg();
 }
 
 void loop(void)
 {
   volatile int stupid = 0;
+  volatile uint32_t x = search();
   while (1)
   {
-    // printf("%d\n", generateImage());
-    // generateImage();
-    delayMs(100);
-    if (generateImage() == 0)
-    {
-      stupid++;
-      if (stupid > 2)
-      {
-        break;
-      }
-    }
+    x = search();
+    if(x==0)
+      break;
   }
 }
 
