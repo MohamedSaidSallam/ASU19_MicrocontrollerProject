@@ -4,14 +4,14 @@ void initUart();
 uint8_t verifyPassword(void);
 
 uint32_t generateImage(void);
-uint32_t image2Tz(uint8_t slot);
+int image2Tz(uint8_t slot);
 uint32_t storeModel(uint16_t id);
 uint32_t loadChar(uint16_t id);
 uint32_t createModel(void);
 uint32_t deleteModel(uint16_t id);
 uint32_t emptyDatabase(void);
 uint32_t fingerFastSearch(void);
-uint8_t genImg();
+int genImg();
 uint32_t match(uint16_t id);
 uint32_t matching(void);
 uint32_t enroll(uint16_t id);
