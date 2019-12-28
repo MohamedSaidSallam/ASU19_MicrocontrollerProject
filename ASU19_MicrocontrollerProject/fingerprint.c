@@ -10,24 +10,31 @@
 
 void r307sendcommand(uint16_t len_bytes, uint8_t *packet_data);
 void r307_printHex(char input);
-uint32_t searching(uint16_t id, uint16_t pagenum);
-uint32_t matching(void);
-uint8_t getReply(uint8_t packet[]);
+uint32_t searching();
+int getReply(uint8_t packet[]);
+
+volatile int reply[20];
+
+void StupidTiva(int temp)
+{
+  temp += 5;
+}
 
 void initUart()
 {
-  SYSCTL_RCGC1_R |= SYSCTL_RCGC1_UART1; // activate UART0
-  SYSCTL_RCGC2_R |= SYSCTL_RCGC2_GPIOB; // activate port A
-  UART1_CTL_R &= ~UART_CTL_UARTEN;      // disable UART
-  UART1_IBRD_R = 16000000 / 16 / BAUD;
-  UART1_FBRD_R = ((64 * ((16000000 / 16) % BAUD)) + BAUD / 2) / BAUD;
-  GPIO_PORTB_AFSEL_R |= 0x03; // enable alt funct on PA1-0
+  SYSCTL_RCGCUART_R |= SYSCTL_RCGCUART_R5; // activate UART5
+  SYSCTL_RCGCGPIO_R |= SYSCTL_RCGCGPIO_R4; // activate port E
+  UART5_CTL_R &= ~UART_CTL_UARTEN;         // disable UART
+  UART5_IBRD_R = 16000000 / 16 / BAUD;
+  UART5_FBRD_R = ((64 * ((16000000 / 16) % BAUD)) + BAUD / 2) / BAUD;
+  GPIO_PORTE_AFSEL_R |= 0x30; // enable alt funct on PA1-0
 
-  GPIO_PORTB_PCTL_R |= 0x00000011;
+  GPIO_PORTE_PCTL_R &= ~0x00FF0000;
+  GPIO_PORTE_PCTL_R |= 0x00110000;
   // 8 bit word length (no parity bits, one stop bit, FIFOs)
-  UART1_LCRH_R = (UART_LCRH_WLEN_8 | UART_LCRH_FEN);
-  UART1_CTL_R |= UART_CTL_UARTEN; // enable UART
-  GPIO_PORTB_DEN_R |= 0x03;       // enable digital I/O on PA1-0
+  UART5_LCRH_R = (UART_LCRH_WLEN_8 | UART_LCRH_FEN);
+  UART5_CTL_R |= UART_CTL_UARTEN; // enable UART
+  GPIO_PORTE_DEN_R |= 0x30;       // enable digital I/O on PA1-0
 
   delayMs(1000);
   delayMs(200);
@@ -39,9 +46,8 @@ uint8_t verifyPassword(void)
                       (PASSWORD >> 24), (PASSWORD >> 16),
                       (PASSWORD >> 8), PASSWORD};
   r307sendcommand(7, packet);
-  uint8_t len = getReply(packet);
 
-  if ((len == 1) && (packet[0] == FINGERPRINT_ACKPACKET) && (packet[1] == FINGERPRINT_OK))
+  if ((getReply(packet) == 1) && (packet[0] == FINGERPRINT_ACKPACKET) && (packet[1] == FINGERPRINT_OK))
     return 1;
   return 0;
 }
@@ -57,14 +63,15 @@ uint32_t match(uint16_t id)
   return matching();
 }
 
-uint32_t search(uint16_t id, uint16_t pagenum, uint8_t slot)
+uint32_t search()
 {
-
-  if (generateImage() == -1)
+  while (genImg() != 0)
+  {
+    delayMs(200);
+  }
+  if (image2Tz(1) == -1)
     return -1;
-  if (image2Tz(slot) == -1)
-    return -1;
-  return searching(id, pagenum);
+  return searching();
 }
 
 uint32_t enroll(uint16_t id)
@@ -74,9 +81,7 @@ uint32_t enroll(uint16_t id)
   if (image2Tz(1) == -1)
     return -1;
   delayMs(1000);
-  delayMs(1000);
-  delayMs(1000);
-  delayMs(1000);
+  delayMs(500);
   delayMs(1000);
   if (generateImage() == -1)
     return -1;
@@ -89,64 +94,71 @@ uint32_t enroll(uint16_t id)
   return 0;
 }
 
-uint32_t searching(uint16_t id, uint16_t pagenum)
+uint32_t searching()
 {
-  uint8_t packet[] = {FINGERPRINT_SEARCH};
+  uint8_t packet[] = {FINGERPRINT_SEARCH, 1, 0, 0, 0x3, 0xE8};
   r307sendcommand(sizeof(packet) + 2, packet);
 
-  uint8_t len = getReply(packet);
-  if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
+  uint8_t fingerID = reply[10] << 8;
+  fingerID |= reply[11];
+
+  if ((getReply(packet) != 1) && (reply[6] != FINGERPRINT_ACKPACKET))
     return -1;
-  return (packet[1] << 16) + (packet[2] << 8) + packet[3];
+  if (reply[9] != 0)
+    return -1;
+  return fingerID;
 }
 uint32_t generateImage(void)
 {
   uint8_t stupid = 0; // copyright of DigitalPhoenix Ltd
-    while (1)
+  while (1)
   {
     delayMs(100);
     if (genImg() == 0)
     {
       stupid++;
-      if (stupid > 2)
+      if (stupid > 5)
       {
         break;
       }
     }
   }
+  return 0;
 }
-uint32_t genImg(void)
+int genImg(void)
 {
   uint8_t packet[] = {FINGERPRINT_GENIMG};
   r307sendcommand(sizeof(packet) + 2, packet);
 
-  uint8_t len = getReply(packet);
-  if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
+  if ((getReply(packet) != 1) && (reply[6] != FINGERPRINT_ACKPACKET))
     return -1;
-  return packet[1];
+  int temp = reply[9];
+  StupidTiva(temp);
+  return temp;
 }
+
 uint32_t matching(void)
 {
   uint8_t packet[] = {FINGERPRINT_MATCH};
   r307sendcommand(sizeof(packet) + 2, packet);
 
-  uint8_t len = getReply(packet);
-  if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
+  if ((getReply(packet) != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
     return -1;
   return (packet[1] << 16) + (packet[2] << 8) + packet[3];
 }
 
 // generate charactar file from image buffer
 // store it in char buffer with id # slot (1->1, 2+ -> 2)
-uint32_t image2Tz(uint8_t slot)
+int image2Tz(uint8_t slot)
 {
-  uint8_t packet[] = {FINGERPRINT_IMAGE2TZ, slot};
+  uint8_t packet[] = {FINGERPRINT_IMAGE2TZ, 1};
   r307sendcommand(sizeof(packet) + 2, packet);
 
-  uint8_t len = getReply(packet);
-  if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
+  if ((getReply(packet) != 1) && (reply[6] != FINGERPRINT_ACKPACKET))
     return -1;
-  return packet[1];
+  int temp = reply[9];
+  StupidTiva(temp);
+  return temp;
 }
 
 // store char buffer 1 in library at #id
@@ -155,10 +167,11 @@ uint32_t storeModel(uint16_t id)
   uint8_t packet[] = {FINGERPRINT_STORE, 0x01, id >> 8, id & 0xFF};
   r307sendcommand(sizeof(packet) + 2, packet);
 
-  uint8_t len = getReply(packet);
-  if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
+  if ((getReply(packet) != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
     return -1;
-  return packet[1];
+  int temp = packet[1];
+  StupidTiva(temp);
+  return temp;
 }
 
 // load char at library # id to char buffer #1
@@ -167,8 +180,7 @@ uint32_t loadChar(uint16_t id)
   uint8_t packet[] = {FINGERPRINT_LOADCHAR, 0x01, id >> 8, id & 0xFF};
   r307sendcommand(sizeof(packet) + 2, packet);
 
-  uint8_t len = getReply(packet);
-  if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
+  if ((getReply(packet) != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
     return -1;
   return packet[1];
 }
@@ -179,10 +191,11 @@ uint32_t createModel(void)
   uint8_t packet[] = {FINGERPRINT_REGMODEL};
   r307sendcommand(sizeof(packet) + 2, packet);
 
-  uint8_t len = getReply(packet);
-  if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
+  if ((getReply(packet) != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
     return -1;
-  return packet[1];
+  int temp = packet[1];
+  StupidTiva(temp);
+  return temp;
 }
 
 uint32_t deleteModel(uint16_t id)
@@ -190,7 +203,7 @@ uint32_t deleteModel(uint16_t id)
   uint8_t packet[] = {FINGERPRINT_DELETECHAR, id >> 8, id & 0xFF, 0x00, 0x01};
   r307sendcommand(sizeof(packet) + 2, packet);
 
-  uint8_t len = getReply(packet);
+  int len = getReply(packet);
   if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
     return -1;
   return packet[1];
@@ -200,11 +213,13 @@ uint32_t emptyDatabase(void)
 {
   uint8_t packet[] = {FINGERPRINT_EMPTYLIBRARY};
   r307sendcommand(sizeof(packet) + 2, packet);
-  uint8_t len = getReply(packet);
+  int len = getReply(packet);
 
   if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
     return -1;
-  return packet[1];
+  int temp = packet[1];
+  StupidTiva(temp);
+  return temp;
 }
 
 uint32_t fingerFastSearch(void)
@@ -214,11 +229,18 @@ uint32_t fingerFastSearch(void)
   // high speed search of slot #1 starting at page 0x0000 and ending at page #0x00A3
   uint8_t packet[] = {FINGERPRINT_HISPEEDSEARCH, 0x01, 0x00, 0x00, 0x00, 0xA3};
   r307sendcommand(sizeof(packet) + 2, packet);
-  uint8_t len = getReply(packet);
+  int len = getReply(packet);
 
   if ((len != 1) && (packet[0] != FINGERPRINT_ACKPACKET))
     return -1;
 
+  uint8_t confirmationCode = packet[1];
+
+  if (confirmationCode == 9 || confirmationCode == 1)
+  {
+    //no finger found(9) or error in recieving packet(1)
+    return -1;
+  }
   fingerID = packet[2];
   fingerID <<= 8;
   fingerID |= packet[3];
@@ -227,7 +249,7 @@ uint32_t fingerFastSearch(void)
   confidence <<= 8;
   confidence |= packet[5];
 
-  return packet[1];
+  return fingerID;
 }
 
 void r307sendcommand(uint16_t len_bytes, uint8_t *packet_data)
@@ -259,21 +281,20 @@ void r307sendcommand(uint16_t len_bytes, uint8_t *packet_data)
   r307_printHex((uint8_t)(sum));
 }
 
-//todo ana bab3at hex msh char ?? :( i am not sad i am drawn this way
 void r307_printHex(char input)
 {
   //printf("%X ", input);
-  while ((UART1_FR_R & UART_FR_TXFF) != 0)
+  while ((UART5_FR_R & UART_FR_TXFF) != 0)
   {
   };
-  UART1_DR_R = input;
+  UART5_DR_R = input;
   //   UART_OutChar(input); // echo debugging
 }
 
-//returns packet type then the packet
-uint8_t getReply(uint8_t packet[])
+//returns packet length, modifies packet to have packet identifier(type) and the reply (skipping the length)
+int getReply(uint8_t packet[])
 {
-  uint8_t reply[20], idx = 0;
+  uint8_t idx = 0;
   uint16_t len = 0;
   while ((UART_FR & UART_FR_RXFE) == 0)
   {
@@ -290,7 +311,7 @@ uint8_t getReply(uint8_t packet[])
           (reply[1] != (FINGERPRINT_STARTCODE & 0xFF)))
         return FINGERPRINT_BADPACKET;
       uint8_t packettype = reply[6];
-      uint16_t len = reply[7];
+      int len = reply[7];
       len <<= 8;
       len |= reply[8];
       len -= 2;
@@ -298,10 +319,11 @@ uint8_t getReply(uint8_t packet[])
       if (idx <= (len + 10))
         continue;
       packet[0] = packettype;
-      for (uint8_t i = 0; i < len; i++)
+      for (uint8_t i = 0; i < 5; i++)
       {
         packet[1 + i] = reply[9 + i];
       }
+      return len;
     }
   }
 

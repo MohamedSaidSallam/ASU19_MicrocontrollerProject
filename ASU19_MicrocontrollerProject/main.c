@@ -1,51 +1,61 @@
 #include "tm4c123gh6pm.h"
-#include "lcd.h"
-#include "systicktimerutil.h"
-#include "builtinswitchutil.h"
+
+#include "esp8266.h"
 #include "fingerprint.h"
+#include "systicktimerutil.h"
+#include <stdint.h>
+#include "lcd.h"
+#include "builtinswitchutil.h"
+#include "periodicinterruptutil.h"
 
-
-void init();
-void loop();
-
-void clearLCD();
-
-void addFingerprint();
-void searchForUser();
-
-int main()
+int enrolling = 0;
+void enrollUser(void)
 {
-  init();
-  LCD_word("S1 enroll S2 search",19);
-  loop();
+  enrolling = 1;
 }
-void init(){
-  lcdInit();
+
+void nullOp()
+{
+}
+
+void init()
+{
+  initWifi();
   systickTimerInit();
+  initUart();
+  lcdInit();
   builtin_switch_init();
-  set_sw1_function(&addFingerprint);
-  set_sw2_function(&searchForUser);
-}
-void loop(){
-  while(1){
-    do_builtin_switch_functions();
-  }
-}
-void clearLCD(){
+  set_sw1_function(&enrollUser);
+  set_sw2_function(&nullOp);
+
   lcd_clear();
   lcd_cursor_first_line();
+
+  LCD_word("started", 7);
 }
-void addFingerprint(){
-  clearLCD();
-  LCD_word("put your finger,remove then put",32);
+
+void loop()
+{
+  while (1)
+  {
+    do_builtin_switch_functions();
+    if (enrolling)
+    {
+      lcd_clear();
+      lcd_cursor_first_line();
+      enrolling = 0;
+      LCD_word("enrolling", 9);
+      enroll(13);
+      registerOnCloud(13);
+      lcd_clear();
+      lcd_cursor_first_line();
+      LCD_word("enrolled", 8);
+    }
+  }
 }
-void searchForUser(){
-  clearLCD();
-  int id =0;
-  if(id == -1){
-    LCD_word("User not found.",15);
-  }
-  else{
-    LCD_word("User found.",11);
-  }
+
+int main(void)
+{
+  init();
+  loop();
 }
